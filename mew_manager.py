@@ -35,16 +35,24 @@ def draw_text_on_world(ai, pos: Point2, text: str, draw_color=(255, 102, 255), f
         size=font_size,
     )
 
+#import threading
+
 class SingletonManager(ManagerBase):
-    Instance = None
-    def __init__(self, *arg, **kwarg):
-        super().__init__(*arg, **kwarg)
+    _registry = {}
+    #_lock = threading.Lock()  # Global lock for thread safety
 
     @classmethod
-    def get_instance(cls, *arg, **kwarg):
-        if not cls.Instance:
-             cls.Instance = cls(*arg, **kwarg)
-        return cls.Instance 
+    def get_instance(cls, *args, **kwargs):
+        if not cls.__name__ in SingletonManager._registry:
+            #with cls._lock:
+            # Double-check locking pattern
+            if cls.__name__ not in SingletonManager._registry:
+                #create new instance
+                cls._instance = cls( *args, **kwargs)
+                print(f"\n ~ | create_instance: cls: {cls.__name__}\n ~ | args={args}\n ~ | kwargs={kwargs}\n ~ | instance: {cls._instance}")
+                #add to registry
+                SingletonManager._registry[cls.__name__] = cls._instance 
+        return SingletonManager._registry[cls.__name__]
 
     async def start(self, knowledge: "Knowledge"):
         await super().start(knowledge)
@@ -502,7 +510,7 @@ class TerrainManager(SingletonManager):
 
     async def start(self, knowledge: "Knowledge"):
         await super().start(knowledge)
-        #self.expansion_paths_updater = IntervalFunc(self.ai, self._path_expansion_distances, 1)
+        self.expansion_paths_updater = IntervalFunc(self.ai, self._path_expansion_distances, 1)
         self._calculate_nydus_spots()
         self._path_expansion_distances()
         game_info: GameInfo = self.ai.game_info
@@ -548,12 +556,12 @@ class TerrainManager(SingletonManager):
     async def update(self):
         super().update()
         
-        #self.expansion_paths_updater.execute()
+        self.expansion_paths_updater.execute()
 
         self.update_creep_map()
 
-        #self.offensive_nydus_locations = self.nydus_solver.calculate_offensive_nydus_spots(ExpansionBase.num_enemy_expansions)
-        #self.defensive_nydus_locations = self.nydus_solver.calculate_defensive_nydus_spots(ExpansionBase.num_expansions)
+        self.offensive_nydus_locations = self.nydus_solver.calculate_offensive_nydus_spots(ExpansionBase.num_enemy_expansions)
+        self.defensive_nydus_locations = self.nydus_solver.calculate_defensive_nydus_spots(ExpansionBase.num_expansions)
         
         
 
